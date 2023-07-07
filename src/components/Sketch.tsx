@@ -1,90 +1,53 @@
-import type P5 from "p5";
-import Sketch from "react-p5";
-import { Inspector, useRangeKnob, useSelectKnob } from "retoggle";
-import { useWindowSize } from "usehooks-ts";
-import { PenColors, penColorValues } from "../constants";
-import { PageColors, Pages, drawPage } from "../page";
-import useExportKnob from "./exportKnob";
+import { FC } from "react";
+import Svg, { Circle, Rect } from "react-native-svg";
+import { useKnob } from "./Knobs";
+import { Page, usePageSize } from "./Page";
 
-const BACKGROUND_COLORS: {
-  [key in PageColors]: string;
-} = {
-  [PageColors.white]: "black",
-  [PageColors.black]: "white",
-};
+export const Sketch: FC = () => {
+  const [pageType] = useKnob("Page Type");
+  const [pageColor] = useKnob("Page Color");
+  const { pageHeight, pageWidth } = usePageSize();
 
-export default function SketchComponent() {
-  const { width: screenWidth, height: screenHeight } = useWindowSize();
+  // const setup = (p5: P5, canvasParentRef: Element) => {
+  //   p5.createCanvas(screenWidth, screenHeight, p5.svg).parent(canvasParentRef);
+  // };
 
-  const [pageType] = useSelectKnob(
-    "Page Size",
-    Object.values(Pages),
-    Pages.landscape11x17
-  );
-  const [pageColor] = useSelectKnob(
-    "Page Color",
-    Object.values(PageColors),
-    PageColors.black
-  );
+  // const draw = (p5: P5) => {
+  //   p5.resizeCanvas(screenWidth, screenHeight);
 
-  const [penColor] = useSelectKnob(
-    "Pen Color",
-    Object.values(PenColors),
-    PenColors.white
-  );
-  const penColorValue = penColorValues[penColor as PenColors];
+  //   const startX = page.x;
+  //   const startY = page.y;
 
-  const [width] = useRangeKnob("Line Width", {
-    min: 0,
-    max: 10,
-    initialValue: 1,
-  });
-
-  const [centerX] = useRangeKnob("Center X", {
-    min: 0,
-    max: 1000,
-    initialValue: 1,
-  });
-
-  const [centerY] = useRangeKnob("Center Y", {
-    min: 0,
-    max: 1000,
-    initialValue: 1,
-  });
-
-  useExportKnob();
-
-  const setup = (p5: P5, canvasParentRef: Element) => {
-    p5.createCanvas(screenWidth, screenHeight).parent(canvasParentRef);
-  };
-
-  const draw = (p5: P5) => {
-    p5.resizeCanvas(screenWidth, screenHeight);
-
-    const page = drawPage({
-      p5,
-      pageType: pageType as Pages,
-      pageColor: pageColor as PageColors,
-      screenWidth,
-      screenHeight,
-    });
-
-    const startX = page.x;
-    const startY = page.y;
-
-    p5.stroke(penColorValue)
-      .strokeWeight(width)
-      .line(startX, startY, startX + centerX, startY + centerY);
-  };
+  //   p5.stroke(penColorValue)
+  //     .strokeWeight(width)
+  //     .line(startX, startY, startX + centerX, startY + centerY);
+  // };
 
   return (
-    <div
-      style={{
-        backgroundColor: BACKGROUND_COLORS[pageColor as PageColors],
-      }}
+    <Svg
+      height={pageHeight}
+      width={pageWidth}
+      viewBox={`0 0 ${pageWidth} ${pageHeight}`}
     >
-      <Inspector />
-      <Sketch setup={setup as any} draw={draw as any} />
-    </div>
+      <Page />
+
+      <Circle
+        cx="50"
+        cy="50"
+        r="45"
+        stroke="blue"
+        strokeWidth="2.5"
+        fill="green"
+      />
+      <Rect
+        x="15"
+        y="15"
+        width="70"
+        height="70"
+        stroke="red"
+        strokeWidth="2"
+        fill="yellow"
+      />
+    </Svg>
   );
-}
+};
