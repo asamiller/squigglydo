@@ -1,8 +1,7 @@
-import prand from "pure-rand";
 import { FC } from "react";
 import Svg, { Line } from "react-native-svg";
 import { PenColors } from "../constants";
-import { useKnob } from "./Knobs";
+import { useKnob, useRandomKnob } from "./Knobs";
 import { Page, usePageSize } from "./Page";
 
 export const Sketch: FC = () => {
@@ -12,6 +11,7 @@ export const Sketch: FC = () => {
   const [penSize] = useKnob<number>("Pen Size");
   const [numberOfLines] = useKnob<number>("Lines");
   const { pageHeight, pageWidth } = usePageSize();
+  const random = useRandomKnob("lines");
 
   // const setup = (p5: P5, canvasParentRef: Element) => {
   //   p5.createCanvas(screenWidth, screenHeight, p5.svg).parent(canvasParentRef);
@@ -37,23 +37,12 @@ export const Sketch: FC = () => {
       <Page />
 
       {[...Array(numberOfLines)].map((_, i) => {
-        const [x] = prand.uniformIntDistribution(
-          0,
-          pageWidth,
-          prand.xoroshiro128plus(i)
-        );
-        const [y] = prand.uniformIntDistribution(
-          0,
-          pageHeight,
-          prand.xoroshiro128plus(i)
-        );
-
         return (
           <Line
             x1="0"
             y1="0"
-            x2={x}
-            y2={y}
+            x2={random() * pageWidth}
+            y2={random() * pageHeight}
             stroke={penColor}
             strokeWidth={penSize}
             key={i}

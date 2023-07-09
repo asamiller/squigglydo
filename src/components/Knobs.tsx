@@ -1,3 +1,4 @@
+import prand from "pure-rand";
 import { FC, useCallback, useEffect } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { create } from "zustand";
@@ -7,10 +8,12 @@ import { PageColors, Pages } from "./Page";
 import { Select } from "./Select";
 import { Sketch } from "./Sketch";
 import { Slider } from "./Slider";
-
 interface KnobsState {
   knobs: {
     [key: string]: string | number;
+  };
+  seeds: {
+    [key: string]: number;
   };
   setKnob: (name: string, value: string | number) => void;
 }
@@ -18,8 +21,9 @@ interface KnobsState {
 const useKnobsStore = create<KnobsState>()(
   devtools(
     persist(
-      (set) => ({
+      (set, get) => ({
         knobs: {},
+        seeds: {},
         setKnob: (name, value) => {
           set((state) => ({
             knobs: {
@@ -110,3 +114,22 @@ export const Knobs: FC<KnobsProps> = ({}) => {
     </div>
   );
 };
+
+export function useRandomKnob(seed: string): () => number {
+  const seedValue = useKnobsStore((state) => state.seeds[seed]);
+
+  useEffect(() => {
+    if (seedValue === undefined) {
+      const seedValue = Math.floor(Math.random() * 1000000);
+      useKnobsStore.setState((state) => ({
+        seeds: {
+          ...state.seeds,
+          [seed]: seedValue,
+        },
+      }));
+    }
+  }, [seed, seedValue]);
+
+  const rng = prand.xoroshiro128plus(seedValue);
+  return () => (rng.unsafeNext() >>> 0) / 0x100000000;
+}
