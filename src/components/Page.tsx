@@ -6,8 +6,8 @@ import { useKnob } from "./Knobs";
 export const PADDING = 20;
 
 export enum PageColors {
-  white = "White",
-  black = "Black",
+  white = "white",
+  black = "black",
 }
 
 export enum Pages {
@@ -24,19 +24,14 @@ const heightToWidthRatios = {
   [Pages.portrait85x11]: 11 / 8.5, // 1.2941176470588236
 };
 
-const pageColorValues: { [key in PageColors]: string } = {
-  [PageColors.white]: "rgb(255, 255, 255)",
-  [PageColors.black]: "rgb(0, 0, 0)",
-};
-
 export function usePageSize() {
   const { width, height } = useWindowSize();
-  const screenWidth = width - PADDING * 2;
-  const screenHeight = height - PADDING * 2;
+  const screenWidth = Math.max((width ?? 0) - PADDING * 2, 0);
+  const screenHeight = Math.max((height ?? 0) - PADDING * 2, 0);
 
   const [pageType] = useKnob("Page Type");
 
-  const heightToWidthRatio = heightToWidthRatios[pageType];
+  const heightToWidthRatio = heightToWidthRatios[pageType] ?? 1;
 
   let pageWidth = screenWidth;
   let pageHeight = screenWidth * heightToWidthRatio;
@@ -56,10 +51,10 @@ export function usePageSize() {
 
 export const Page: FC = () => {
   const [pageType] = useKnob("Page Type");
-  const [pageColor] = useKnob("Page Color");
+  const [pageColor] = useKnob<string>("Page Color");
   const { pageHeight, pageWidth } = usePageSize();
 
-  const color = pageColorValues[pageColor];
+  const color = pageColor ?? PageColors.white;
 
   return (
     <Rect

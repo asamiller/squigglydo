@@ -1,8 +1,11 @@
 import { FC, useCallback, useEffect } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
+import { PenColors } from "../constants";
 import { PageColors, Pages } from "./Page";
 import { Select } from "./Select";
+import { Sketch } from "./Sketch";
 import { Slider } from "./Slider";
 
 interface KnobsState {
@@ -31,10 +34,10 @@ const useKnobsStore = create<KnobsState>()(
   )
 );
 
-export function useKnob(
+export function useKnob<T>(
   name: string,
   initialValue?: string | number
-): [string | number, (value: string | number) => void] {
+): [T | undefined, (value: string | number) => void] {
   const value: string | number | undefined = useKnobsStore(
     (state) => state.knobs[name]
   );
@@ -55,11 +58,22 @@ export function useKnob(
     [name, setKnob]
   );
 
-  return [value, setKnobValue];
+  return [value as T, setKnobValue];
 }
 
 interface KnobsProps {}
 export const Knobs: FC<KnobsProps> = ({}) => {
+  const download = useCallback(() => {
+    const svg = renderToStaticMarkup(<Sketch />);
+    const dataURL = "data:image/svg+xml," + encodeURIComponent(svg);
+    const dl = document.createElement("a");
+    dl.setAttribute("href", dataURL);
+    dl.setAttribute("download", "sketch.svg");
+    dl.click();
+
+    console.log("svg", svg);
+  }, []);
+
   return (
     <div
       style={{
@@ -83,7 +97,16 @@ export const Knobs: FC<KnobsProps> = ({}) => {
         values={Object.values(PageColors)}
         initialValue={PageColors.white}
       />
+      <Select
+        name="Pen Color"
+        values={Object.values(PenColors)}
+        initialValue={PenColors.white}
+      />
       <Slider name="Pen Size" initialValue={2} min={0} max={10} />
+
+      <Slider name="Lines" initialValue={10} min={1} max={100} />
+
+      <button onClick={download}>Download</button>
     </div>
   );
 };
