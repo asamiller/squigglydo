@@ -2,7 +2,7 @@ import prand from "pure-rand";
 import { FC, useCallback, useEffect } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { create } from "zustand";
-import { devtools, persist } from "zustand/middleware";
+import { StateStorage, createJSONStorage, persist } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 import { Select } from "./Select";
 import { Sketch } from "./Sketch";
@@ -39,24 +39,50 @@ interface KnobsState {
   addKnob: (knob: Knob) => void;
 }
 
+const getUrlSearch = () => {
+  return window.location.search.slice(1);
+};
+
+const persistentStorage: StateStorage = {
+  getItem: (key): string => {
+    if (getUrlSearch()) {
+      const searchParams = new URLSearchParams(getUrlSearch());
+      const storedValue = searchParams.get(key);
+      return JSON.parse(storedValue);
+    }
+  },
+  setItem: (key, newValue): void => {
+    const searchParams = new URLSearchParams(getUrlSearch());
+    searchParams.set(key, JSON.stringify(newValue));
+    window.history.replaceState(null, null, `?${searchParams.toString()}`);
+  },
+  removeItem: (key): void => {
+    const searchParams = new URLSearchParams(getUrlSearch());
+    searchParams.delete(key);
+    window.location.search = searchParams.toString();
+  },
+};
+
 const useKnobsStore = create<KnobsState>()(
-  devtools(
-    persist(
-      immer<KnobsState>((set) => ({
-        knobs: {},
-        setKnobValue: (name, value) => {
-          set((state) => {
-            state.knobs[name].value = value;
-          });
-        },
-        addKnob: (knob: Knob) => {
-          set((state) => {
-            state.knobs[knob.name] = knob;
-          });
-        },
-      })),
-      { name: "knobs-storage" }
-    )
+  persist(
+    immer<KnobsState>((set) => ({
+      knobs: {},
+      setKnobValue: (name, value) => {
+        set((state) => {
+          state.knobs[name].value = value;
+        });
+      },
+      addKnob: (knob: Knob) => {
+        set((state) => {
+          state.knobs[knob.name] = knob;
+        });
+      },
+    })),
+    {
+      name: "knobs-storage",
+      storage: createJSONStorage(() => persistentStorage),
+      partialize: (state) => ({ knobs: state.knobs }),
+    }
   )
 );
 
@@ -97,6 +123,7 @@ export const Knobs: FC<KnobsProps> = ({}) => {
                 value={selectKnob.value}
                 values={selectKnob.values}
                 onChange={(value) => setKnobValue(selectKnob.name, value)}
+                key={selectKnob.name}
               />
             );
           case KnobTypes.slider:
@@ -109,6 +136,7 @@ export const Knobs: FC<KnobsProps> = ({}) => {
                 max={sliderKnob.max}
                 steps={sliderKnob.steps}
                 onChange={(value) => setKnobValue(sliderKnob.name, value)}
+                key={sliderKnob.name}
               />
             );
 
@@ -122,6 +150,7 @@ export const Knobs: FC<KnobsProps> = ({}) => {
                 max={1000}
                 steps={1}
                 onChange={(value) => setKnobValue(randomKnob.name, value)}
+                key={randomKnob.name}
               />
             );
         }
