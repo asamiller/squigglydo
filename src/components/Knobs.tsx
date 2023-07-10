@@ -11,6 +11,7 @@ import { Slider } from "./Slider";
 enum KnobTypes {
   select = "select",
   slider = "slider",
+  random = "random",
 }
 
 interface SelectKnob {
@@ -34,9 +35,6 @@ interface KnobsState {
   knobs: {
     [key: string]: Knob;
   };
-  seeds: {
-    [key: string]: number;
-  };
   setKnobValue: (name: string, value: string | number) => void;
   addKnob: (knob: Knob) => void;
 }
@@ -46,7 +44,6 @@ const useKnobsStore = create<KnobsState>()(
     persist(
       immer<KnobsState>((set) => ({
         knobs: {},
-        seeds: {},
         setKnobValue: (name, value) => {
           set((state) => {
             state.knobs[name].value = value;
@@ -75,11 +72,7 @@ export const Knobs: FC<KnobsProps> = ({}) => {
     dl.setAttribute("href", dataURL);
     dl.setAttribute("download", "sketch.svg");
     dl.click();
-
-    console.log("svg", svg);
   }, []);
-
-  console.log("knobs", knobs);
 
   return (
     <div
@@ -118,6 +111,19 @@ export const Knobs: FC<KnobsProps> = ({}) => {
                 onChange={(value) => setKnobValue(sliderKnob.name, value)}
               />
             );
+
+          case KnobTypes.random:
+            const randomKnob = knob as SliderKnob;
+            return (
+              <Slider
+                name={randomKnob.name}
+                value={randomKnob.value}
+                min={1}
+                max={1000}
+                steps={1}
+                onChange={(value) => setKnobValue(randomKnob.name, value)}
+              />
+            );
         }
       })}
 
@@ -126,22 +132,24 @@ export const Knobs: FC<KnobsProps> = ({}) => {
   );
 };
 
-export function useRandomKnob(seed: string): () => number {
-  const seedValue = useKnobsStore((state) => state.seeds[seed]);
+export function useRandomKnob(name: string): () => number {
+  const knob = useKnobsStore((state) => state.knobs[name]);
+  const addKnob = useKnobsStore((state) => state.addKnob);
 
   useEffect(() => {
-    if (seedValue === undefined) {
-      const seedValue = Math.floor(Math.random() * 1000000);
-      useKnobsStore.setState((state) => ({
-        seeds: {
-          ...state.seeds,
-          [seed]: seedValue,
-        },
-      }));
+    if (knob === undefined) {
+      addKnob({
+        name,
+        type: KnobTypes.slider,
+        value: 1,
+        min: 1,
+        max: 1000,
+        steps: 1,
+      });
     }
-  }, [seed, seedValue]);
+  }, []);
 
-  const rng = prand.xoroshiro128plus(seedValue);
+  const rng = prand.xoroshiro128plus((knob?.value as number) ?? 1);
   return () => (rng.unsafeNext() >>> 0) / 0x100000000;
 }
 
