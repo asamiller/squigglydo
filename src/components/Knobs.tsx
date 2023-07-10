@@ -1,11 +1,9 @@
 import prand from "pure-rand";
 import { FC, useCallback, useEffect } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 import { create } from "zustand";
 import { StateStorage, createJSONStorage, persist } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 import { Select } from "./Select";
-import { Sketch } from "./Sketch";
 import { Slider } from "./Slider";
 
 enum KnobTypes {
@@ -92,8 +90,9 @@ export const Knobs: FC<KnobsProps> = ({}) => {
   const setKnobValue = useKnobsStore((state) => state.setKnobValue);
 
   const download = useCallback(() => {
-    const svg = renderToStaticMarkup(<Sketch />);
-    const dataURL = "data:image/svg+xml," + encodeURIComponent(svg);
+    const dataURL =
+      "data:image/svg+xml," +
+      encodeURIComponent(document.getElementById("sketch").outerHTML);
     const dl = document.createElement("a");
     dl.setAttribute("href", dataURL);
     dl.setAttribute("download", "sketch.svg");

@@ -45,6 +45,7 @@ export const Sketch: FC = () => {
       height={pageHeight}
       width={pageWidth}
       viewBox={`0 0 ${pageWidth} ${pageHeight}`}
+      id="sketch"
     >
       <Page pageType={pageType} pageColor={pageColor} />
 
