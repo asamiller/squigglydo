@@ -1,32 +1,44 @@
 import { FC } from "react";
 import Svg, { Line } from "react-native-svg";
 import { PenColors } from "../constants";
-import { useKnob, useRandomKnob } from "./Knobs";
-import { Page, usePageSize } from "./Page";
+import { useRandomKnob, useSelectKnob, useSliderKnob } from "./Knobs";
+import { Page, PageColors, Pages, usePageSize } from "./Paper";
 
 export const Sketch: FC = () => {
-  const [pageType] = useKnob("Page Type");
-  const [pageColor] = useKnob("Page Color");
-  const [penColor] = useKnob<PenColors>("Pen Color");
-  const [penSize] = useKnob<number>("Pen Size");
-  const [numberOfLines] = useKnob<number>("Lines");
-  const { pageHeight, pageWidth } = usePageSize();
+  const pageType = useSelectKnob<Pages>({
+    name: "Page Type",
+    values: Object.values(Pages),
+    initialValue: Pages.portrait85x11,
+  });
+
+  const pageColor = useSelectKnob<PageColors>({
+    name: "Page Color",
+    values: Object.values(PageColors),
+    initialValue: PageColors.white,
+  });
+
+  const penColor = useSelectKnob<PenColors>({
+    name: "Pen Color",
+    values: Object.values(PenColors),
+    initialValue: PenColors.black,
+  });
+
+  const penSize = useSliderKnob({
+    name: "Pen Size",
+    initialValue: 1,
+    min: 1,
+    max: 10,
+  });
+
+  const numberOfLines = useSliderKnob({
+    name: "Lines",
+    initialValue: 10,
+    min: 1,
+    max: 1000,
+  });
+
+  const { pageHeight, pageWidth } = usePageSize(pageType);
   const random = useRandomKnob("lines");
-
-  // const setup = (p5: P5, canvasParentRef: Element) => {
-  //   p5.createCanvas(screenWidth, screenHeight, p5.svg).parent(canvasParentRef);
-  // };
-
-  // const draw = (p5: P5) => {
-  //   p5.resizeCanvas(screenWidth, screenHeight);
-
-  //   const startX = page.x;
-  //   const startY = page.y;
-
-  //   p5.stroke(penColorValue)
-  //     .strokeWeight(width)
-  //     .line(startX, startY, startX + centerX, startY + centerY);
-  // };
 
   return (
     <Svg
@@ -34,39 +46,22 @@ export const Sketch: FC = () => {
       width={pageWidth}
       viewBox={`0 0 ${pageWidth} ${pageHeight}`}
     >
-      <Page />
+      <Page pageType={pageType} pageColor={pageColor} />
 
       {[...Array(numberOfLines)].map((_, i) => {
         return (
           <Line
-            x1="0"
-            y1="0"
+            x1={random() * pageWidth}
+            y1={random() * pageHeight}
             x2={random() * pageWidth}
             y2={random() * pageHeight}
             stroke={penColor}
             strokeWidth={penSize}
+            strokeLinecap="round"
             key={i}
           />
         );
       })}
-
-      {/* <Circle
-        cx="50"
-        cy="50"
-        r="45"
-        stroke="blue"
-        strokeWidth="2.5"
-        fill="green"
-      />
-      <Rect
-        x="15"
-        y="15"
-        width="70"
-        height="70"
-        stroke="red"
-        strokeWidth="2"
-        fill="yellow"
-      /> */}
     </Svg>
   );
 };

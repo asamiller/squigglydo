@@ -1,7 +1,6 @@
 import { FC } from "react";
 import { Rect } from "react-native-svg";
 import { useWindowSize } from "usehooks-ts";
-import { useKnob } from "./Knobs";
 
 export const PADDING = 20;
 
@@ -24,14 +23,12 @@ const heightToWidthRatios = {
   [Pages.portrait85x11]: 11 / 8.5, // 1.2941176470588236
 };
 
-export function usePageSize() {
+export function usePageSize(pageType: Pages) {
   const { width, height } = useWindowSize();
   const screenWidth = Math.max((width ?? 0) - PADDING * 2, 0);
   const screenHeight = Math.max((height ?? 0) - PADDING * 2, 0);
 
-  const [pageType] = useKnob("Page Type");
-
-  const heightToWidthRatio = heightToWidthRatios[pageType] ?? 1;
+  const heightToWidthRatio = heightToWidthRatios[pageType];
 
   let pageWidth = screenWidth;
   let pageHeight = screenWidth * heightToWidthRatio;
@@ -49,12 +46,16 @@ export function usePageSize() {
   };
 }
 
-export const Page: FC = () => {
-  const [pageType] = useKnob("Page Type");
-  const [pageColor] = useKnob<string>("Page Color");
-  const { pageHeight, pageWidth } = usePageSize();
+interface PageProps {
+  pageType: Pages;
+  pageColor: PageColors;
+}
 
-  const color = pageColor ?? PageColors.white;
+export const Page: FC<PageProps> = ({
+  pageType = Pages.portrait85x11,
+  pageColor = PageColors.white,
+}) => {
+  const { pageHeight, pageWidth } = usePageSize(pageType);
 
   return (
     <Rect
@@ -64,7 +65,7 @@ export const Page: FC = () => {
       height={pageHeight}
       stroke="none"
       strokeWidth="0"
-      fill={color}
+      fill={pageColor}
     />
   );
 };

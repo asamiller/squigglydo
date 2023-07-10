@@ -3,70 +3,71 @@ import { FC, useCallback, useEffect } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
-import { PenColors } from "../constants";
-import { PageColors, Pages } from "./Page";
+import { immer } from "zustand/middleware/immer";
 import { Select } from "./Select";
 import { Sketch } from "./Sketch";
 import { Slider } from "./Slider";
+
+enum KnobTypes {
+  select = "select",
+  slider = "slider",
+}
+
+interface SelectKnob {
+  name: string;
+  type: KnobTypes;
+  value: string;
+  values: string[];
+}
+
+interface SliderKnob {
+  name: string;
+  type: KnobTypes;
+  value: number;
+  min: number;
+  max: number;
+  steps?: number;
+}
+
+type Knob = SelectKnob | SliderKnob;
 interface KnobsState {
   knobs: {
-    [key: string]: string | number;
+    [key: string]: Knob;
   };
   seeds: {
     [key: string]: number;
   };
-  setKnob: (name: string, value: string | number) => void;
+  setKnobValue: (name: string, value: string | number) => void;
+  addKnob: (knob: Knob) => void;
 }
 
 const useKnobsStore = create<KnobsState>()(
   devtools(
     persist(
-      (set, get) => ({
+      immer<KnobsState>((set) => ({
         knobs: {},
         seeds: {},
-        setKnob: (name, value) => {
-          set((state) => ({
-            knobs: {
-              ...state.knobs,
-              [name]: value,
-            },
-          }));
+        setKnobValue: (name, value) => {
+          set((state) => {
+            state.knobs[name].value = value;
+          });
         },
-      }),
+        addKnob: (knob: Knob) => {
+          set((state) => {
+            state.knobs[knob.name] = knob;
+          });
+        },
+      })),
       { name: "knobs-storage" }
     )
   )
 );
 
-export function useKnob<T>(
-  name: string,
-  initialValue?: string | number
-): [T | undefined, (value: string | number) => void] {
-  const value: string | number | undefined = useKnobsStore(
-    (state) => state.knobs[name]
-  );
-  const setKnob = useKnobsStore((state) => state.setKnob);
-
-  // If we don't have a value set, set it to the initial value
-  useEffect(() => {
-    if (value === undefined && initialValue !== undefined) {
-      setKnob(name, initialValue);
-    }
-  }, [name, initialValue, setKnob, value]);
-
-  const setKnobValue = useCallback(
-    (newValue: string | number) => {
-      // console.log("setKnobValue", name, newValue);
-      setKnob(name, newValue);
-    },
-    [name, setKnob]
-  );
-
-  return [value as T, setKnobValue];
-}
-
 interface KnobsProps {}
 export const Knobs: FC<KnobsProps> = ({}) => {
+  const knobs = useKnobsStore((state) => state.knobs);
+  const setKnobValue = useKnobsStore((state) => state.setKnobValue);
+
   const download = useCallback(() => {
     const svg = renderToStaticMarkup(<Sketch />);
     const dataURL = "data:image/svg+xml," + encodeURIComponent(svg);
@@ -77,6 +78,8 @@ export const Knobs: FC<KnobsProps> = ({}) => {
 
     console.log("svg", svg);
   }, []);
+
+  console.log("knobs", knobs);
 
   return (
     <div
@@ -91,24 +94,32 @@ export const Knobs: FC<KnobsProps> = ({}) => {
         borderRadius: 5,
       }}
     >
-      <Select
-        name="Page Type"
-        values={Object.values(Pages)}
-        initialValue={Pages.landscape11x17}
-      />
-      <Select
-        name="Page Color"
-        values={Object.values(PageColors)}
-        initialValue={PageColors.white}
-      />
-      <Select
-        name="Pen Color"
-        values={Object.values(PenColors)}
-        initialValue={PenColors.white}
-      />
-      <Slider name="Pen Size" initialValue={2} min={0} max={10} />
-
-      <Slider name="Lines" initialValue={10} min={1} max={100} />
+      {Object.values(knobs).map((knob) => {
+        switch (knob.type) {
+          case KnobTypes.select:
+            const selectKnob = knob as SelectKnob;
+            return (
+              <Select
+                name={selectKnob.name}
+                value={selectKnob.value}
+                values={selectKnob.values}
+                onChange={(value) => setKnobValue(selectKnob.name, value)}
+              />
+            );
+          case KnobTypes.slider:
+            const sliderKnob = knob as SliderKnob;
+            return (
+              <Slider
+                name={sliderKnob.name}
+                value={sliderKnob.value}
+                min={sliderKnob.min}
+                max={sliderKnob.max}
+                steps={sliderKnob.steps}
+                onChange={(value) => setKnobValue(sliderKnob.name, value)}
+              />
+            );
+        }
+      })}
 
       <button onClick={download}>Download</button>
     </div>
@@ -132,4 +143,72 @@ export function useRandomKnob(seed: string): () => number {
 
   const rng = prand.xoroshiro128plus(seedValue);
   return () => (rng.unsafeNext() >>> 0) / 0x100000000;
+}
+
+interface SelectKnobProps {
+  name: string;
+  values: string[];
+  initialValue?: string;
+}
+
+export function useSelectKnob<T>({
+  name,
+  values,
+  initialValue,
+}: SelectKnobProps): T {
+  const knob = useKnobsStore((state) => state.knobs[name]);
+  const addKnob = useKnobsStore((state) => state.addKnob);
+
+  useEffect(() => {
+    console.log("useEffect", name, values, initialValue);
+
+    if (knob === undefined) {
+      addKnob({
+        name,
+        type: KnobTypes.select,
+        value: initialValue ?? values[0],
+        values,
+      });
+    }
+  }, []);
+
+  return (knob?.value ?? initialValue ?? values[0]) as T;
+}
+
+interface SliderKnobProps {
+  name: string;
+  min: number;
+  max: number;
+  initialValue?: number;
+  steps?: number;
+}
+export function useSliderKnob({
+  name,
+  min,
+  max,
+  initialValue,
+  steps,
+}: SliderKnobProps): number {
+  const knob = useKnobsStore((state) => state.knobs[name]);
+  const addKnob = useKnobsStore((state) => state.addKnob);
+
+  useEffect(() => {
+    if (knob === undefined) {
+      addKnob({
+        name,
+        type: KnobTypes.slider,
+        value: initialValue ?? min,
+        min,
+        max,
+        steps,
+      });
+    }
+  }, []);
+
+  return (knob?.value as number) ?? initialValue ?? min;
+}
+
+export function useKnobValue<T>(name: string): T {
+  const knob = useKnobsStore((state) => state.knobs[name]);
+  return knob?.value as T;
 }

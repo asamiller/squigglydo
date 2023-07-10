@@ -1,21 +1,14 @@
 import { FC, useId } from "react";
-import { useKnob } from "./Knobs";
 
 interface SelectProps {
   name: string;
+  value: string;
   values: string[];
-  label?: string;
-  initialValue?: string;
+  onChange: (value: string) => void;
 }
 
-export const Select: FC<SelectProps> = ({
-  name,
-  label,
-  values,
-  initialValue,
-}) => {
+export const Select: FC<SelectProps> = ({ name, value, values, onChange }) => {
   const id = useId();
-  const [current, setKnob] = useKnob(name, initialValue);
 
   return (
     <div>
@@ -23,12 +16,12 @@ export const Select: FC<SelectProps> = ({
         htmlFor={id}
         className="block text-sm font-medium leading-6 text-gray-900"
       >
-        {label || name}
+        {name}
       </label>
       <select
         id={id}
-        onChange={(e) => setKnob(e.target.value)}
-        value={current}
+        onChange={(e) => onChange(e.target.value)}
+        value={value}
         className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6"
       >
         {values.map((value) => (
